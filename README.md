@@ -28,20 +28,17 @@ flowchart TD
     User([User / Browser]) -->|1. Configure & Paint Field| Frontend[React 18 + Vite SPA]
     Frontend -->|2. POST /api/v1/optimize| API[FastAPI Router & Controller]
     API -->|3. Dispatch Job| JobStore[In-Memory Async Job Store]
+    JobStore -->|Strategy Selection| Choice{Strategy?}
+    Choice -->|random| RandomEngine[Random Placement Engine]
+    Choice -->|grid| GridEngine[Regular Grid Placement Engine]
+    Choice -->|pso| PSOEngine[PSO Core Engine]
+    Choice -->|pso_vdcoa| HybridEngine[PSO + VDCOA Refinement Engine]
     
-    subgraph Core Algorithm Layer
-        JobStore -->|Strategy Selection| Choice{Strategy?}
-        Choice -->|random| RandomEngine[Random Placement Engine]
-        Choice -->|grid| GridEngine[Regular Grid Placement Engine]
-        Choice -->|pso| PSOEngine[PSO Core Engine]
-        Choice -->|pso_vdcoa| HybridEngine[PSO + VDCOA Refinement Engine]
-        
-        PSOEngine -->|Hardware Check| GPUCheck{GPU Enabled?}
-        HybridEngine -->|Hardware Check| GPUCheck
-        
-        GPUCheck -->|Yes| NumbaCUDA[Numba CUDA Kernel Accelerated Engine]
-        GPUCheck -->|No / CPU Fallback| VectorCPU[Numpy Vectorized CPU Engine]
-    end
+    PSOEngine -->|Hardware Check| GPUCheck{GPU Enabled?}
+    HybridEngine -->|Hardware Check| GPUCheck
+    
+    GPUCheck -->|Yes| NumbaCUDA[Numba CUDA Kernel Accelerated Engine]
+    GPUCheck -->|No / CPU Fallback| VectorCPU[Numpy Vectorized CPU Engine]
 
     NumbaCUDA -->|4. Push Iteration Events| SSE[Server-Sent Events Stream]
     VectorCPU -->|4. Push Iteration Events| SSE
