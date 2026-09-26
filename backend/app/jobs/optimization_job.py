@@ -18,11 +18,16 @@ variants (baselines complete instantly, so no progress events are emitted).
 No HTTP knowledge and no business logic — pure job lifecycle + dispatch only.
 """
 
+import asyncio
+import logging
+
 from app.jobs import job_store
 from app.core.pso import run_pso
 from app.core.pso_gpu import run_pso_gpu
 from app.core.vdcoa import run_vdcoa_refinement
 from app.core.baselines import place_random, place_grid
+
+logger = logging.getLogger(__name__)
 
 
 def run_optimization_job(job_id: str, config: dict) -> None:
@@ -101,6 +106,21 @@ def run_optimization_job(job_id: str, config: dict) -> None:
                 result["strategy"] = "pso"
 
         job_store.set_complete(job_id, result)
+
+        # ---------------------------------------------------------------
+        # Persist to MongoDB (best-effort — failure must not fail the job)
+        # ---------------------------------------------------------------
+        try:
+            from app.db.repositories import run_repository  # local import avoids circular deps
+            asyncio.run(
+                run_repository.save_run(
+                    job_id=job_id,
+                    config=config,
+                    result=result,
+                )
+            )
+        except Exception as mongo_exc:  # noqa: BLE001
+            logger.warning("MongoDB save failed for job %s: %s", job_id, mongo_exc)
 
     except Exception as exc:  # noqa: BLE001
         job_store.set_failed(job_id, str(exc))
