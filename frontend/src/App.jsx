@@ -4,6 +4,7 @@ import StatusBadge from './components/shared/StatusBadge';
 import ErrorBanner from './components/shared/ErrorBanner';
 import Visualizer from './components/Visualizer/Visualizer';
 import HistoryPanel from './components/HistoryPanel/HistoryPanel';
+import SurrogateStatusCard from './components/SurrogateStatus/SurrogateStatusCard';
 import { useOptimizationJob } from './hooks/useOptimizationJob';
 
 const TABS = [
@@ -107,12 +108,20 @@ export default function App() {
         {/* ── Optimizer Tab ───────────────────────────────────────────── */}
         {activeTab === 'optimizer' && (
           <div className="workspace-grid">
-            {/* Left panel: configuration */}
-            <ConfigPanel
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              error={null}
-            />
+            {/* Left panel: configuration & surrogate status */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <ConfigPanel
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                error={null}
+              />
+              <SurrogateStatusCard
+                isOptimizing={isLoading || status === 'running'}
+                surrogateUsed={displayResult?.surrogate_used}
+                iterationsTotal={displayConfig?.pso_params?.iterations || 500}
+              />
+            </div>
+
 
             {/* Right panel: status + visualizer */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

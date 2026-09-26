@@ -72,11 +72,19 @@ def run_optimization_job(job_id: str, config: dict) -> None:
         # PSO-based strategies
         # ---------------------------------------------------------------
         else:
+            # Check for trained surrogate model
+            surrogate_model = None
+            try:
+                from app.services import surrogate_service
+                surrogate_model, _ = surrogate_service.load_surrogate_if_available()
+            except Exception as s_exc:
+                logger.warning("Surrogate model load failed: %s", s_exc)
+
             # --- Phase 1: PSO ---
             if config.get("use_gpu"):
                 pso_result = run_pso_gpu(config, on_iteration=on_iteration)
             else:
-                pso_result = run_pso(config, on_iteration=on_iteration)
+                pso_result = run_pso(config, on_iteration=on_iteration, surrogate_model=surrogate_model)
 
             # --- Phase 2: VDCOA refinement (pso_vdcoa only) ---
             if strategy == "pso_vdcoa":
@@ -112,15 +120,31 @@ def run_optimization_job(job_id: str, config: dict) -> None:
         # ---------------------------------------------------------------
         try:
             from app.db.repositories import run_repository  # local import avoids circular deps
+            from app.services import surrogate_service
+
             asyncio.run(
                 run_repository.save_run(
                     job_id=job_id,
                     config=config,
                     result=result,
+                    surrogate_used=result.get("surrogate_used", False),
+                    surrogate_switch_iteration=result.get("surrogate_switch_iteration"),
                 )
             )
+
+            # Auto-trigger surrogate training if threshold met
+            async def _check_and_train():
+                count = await run_repository.count_runs()
+                if count >= surrogate_service.TRAINING_THRESHOLD:
+                    if not surrogate_service.is_surrogate_trained() or count % surrogate_service.RETRAIN_INTERVAL == 0:
+                        logger.info("Auto-triggering surrogate model training (%d runs stored)", count)
+                        await surrogate_service.run_training_pipeline()
+
+            asyncio.run(_check_and_train())
+
         except Exception as mongo_exc:  # noqa: BLE001
-            logger.warning("MongoDB save failed for job %s: %s", job_id, mongo_exc)
+            logger.warning("MongoDB save / auto-train failed for job %s: %s", job_id, mongo_exc)
 
     except Exception as exc:  # noqa: BLE001
         job_store.set_failed(job_id, str(exc))
+

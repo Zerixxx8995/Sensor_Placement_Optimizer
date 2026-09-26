@@ -82,32 +82,15 @@ def _build_restricted_mask(
     return mask
 
 
-def run_pso(config: dict, on_iteration=None) -> dict:
+def run_pso(config: dict, on_iteration=None, surrogate_model=None) -> dict:
     """
     Run the PSO optimization and return the best sensor deployment found.
 
     Args:
-        config: Top-level configuration dict matching OptimizationConfig schema:
-            {
-              "area": {"width": float, "height": float},
-              "num_nodes": int,
-              "sensing_radius": float,
-              "comm_radius": float,
-              "initial_energy": float,
-              "weights": {"w1": float, "w2": float, "w3": float},
-              "pso_params": {
-                "swarm_size": int,       # number of independent swarms (default 30)
-                "iterations": int,       # default 500
-                "inertia": float,        # ω, default 0.7
-                "c1": float,             # cognitive coeff, default 1.5
-                "c2": float,             # social coeff, default 1.5
-              },
-              "seed": int | None,
-              "restricted_areas": [...],
-              "non_critical_areas": [...],
-              "cell_size": float,         # optional, default 1.0
-              "sink": [x, y],             # optional, default [0, 0]
-            }
+        config: Top-level configuration dict matching OptimizationConfig schema
+        on_iteration: Optional callback on_iteration(g, positions, gbest_pos, gbest_fit)
+        surrogate_model: Optional PyTorch FitnessSurrogateMLP model. If provided,
+                         used for fitness prediction during iterations 1 to 0.7*G.
 
     Returns:
         {
@@ -120,6 +103,8 @@ def run_pso(config: dict, on_iteration=None) -> dict:
           "compute_time_seconds": float,
           "iterations_run":    int,
           "gpu_used":          bool,
+          "surrogate_used":    bool,
+          "surrogate_switch_iteration": int | None,
         }
     """
     # --- Unpack config ---
@@ -146,25 +131,28 @@ def run_pso(config: dict, on_iteration=None) -> dict:
     fitness_cfg = _build_fitness_config(config)
     fitness_cfg["restricted_mask"] = restricted_mask
 
+    surrogate_used = surrogate_model is not None
+    switch_iter = int(0.7 * G) if surrogate_used else None
+
     # --- Seed ---
     rng = np.random.default_rng(seed)
 
     # --- Initialise swarm ---
-    # Dimensions: 2 per node (x, y), so total dims = N * 2
-    # But we keep positions as (P, N, 2) for clarity.
-    # Each "particle" is a complete deployment of N nodes.
     positions = rng.uniform(
         low=[0.0, 0.0], high=[area_W, area_H], size=(P, N, 2)
     )
-    # Velocity initialised to small random values
     v_max = np.array([area_W, area_H]) * 0.1
     velocities = rng.uniform(low=-v_max, high=v_max, size=(P, N, 2))
 
     # --- Evaluate initial fitness ---
-    fitnesses = np.array([
-        compute_fitness(positions[i], fitness_cfg, iteration=0, max_iterations=G)
-        for i in range(P)
-    ])
+    if surrogate_used:
+        from app.core.surrogate_model import predict_surrogate_batch
+        fitnesses = predict_surrogate_batch(surrogate_model, positions, config)
+    else:
+        fitnesses = np.array([
+            compute_fitness(positions[i], fitness_cfg, iteration=0, max_iterations=G)
+            for i in range(P)
+        ])
 
     # Personal bests
     pbest_pos = positions.copy()
@@ -190,18 +178,20 @@ def run_pso(config: dict, on_iteration=None) -> dict:
             + c1 * r1 * (pbest_pos - positions)
             + c2 * r2 * (gbest_pos[np.newaxis, :, :] - positions)
         )
-
-        # Clamp velocity to prevent explosion
         velocities = np.clip(velocities, -v_max, v_max)
 
         # Position update
         positions = positions + velocities
 
         # Evaluate fitness for all particles
-        fitnesses = np.array([
-            compute_fitness(positions[i], fitness_cfg, iteration=g, max_iterations=G)
-            for i in range(P)
-        ])
+        if surrogate_used and g <= switch_iter:
+            from app.core.surrogate_model import predict_surrogate_batch
+            fitnesses = predict_surrogate_batch(surrogate_model, positions, config)
+        else:
+            fitnesses = np.array([
+                compute_fitness(positions[i], fitness_cfg, iteration=g, max_iterations=G)
+                for i in range(P)
+            ])
 
         # Update personal bests
         improved = fitnesses < pbest_fit
@@ -239,7 +229,6 @@ def run_pso(config: dict, on_iteration=None) -> dict:
     else:
         coverage_ratio = float(np.mean(final_cov_map))
 
-    # Connectivity ratio (recompute cleanly)
     from .fitness import _connectivity_ratio, _energy_cost
     connectivity_ratio = _connectivity_ratio(
         best_clamped, Rc, sink=fitness_cfg.get("sink", (0.0, 0.0))
@@ -256,4 +245,7 @@ def run_pso(config: dict, on_iteration=None) -> dict:
         "compute_time_seconds": compute_time,
         "iterations_run": G,
         "gpu_used": False,
+        "surrogate_used": surrogate_used,
+        "surrogate_switch_iteration": switch_iter,
     }
+
