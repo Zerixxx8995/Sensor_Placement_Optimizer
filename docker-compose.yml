@@ -6,10 +6,8 @@ services:
     environment:
       - MONGODB_URL=mongodb://mongo:27017
     depends_on:
-      - mongo
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      mongo:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -26,7 +24,7 @@ services:
       - mongo_data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
 
