@@ -22,6 +22,7 @@ from app.routers.compare import router as compare_router
 from app.routers.fault import router as fault_router
 from app.routers.history import router as history_router
 from app.routers.surrogate import router as surrogate_router
+from app.routers.redeploy import router as redeploy_router
 
 app = FastAPI(
     title="PSO Sensor Placement Optimizer",
@@ -61,6 +62,8 @@ app.include_router(compare_router, prefix="/api/v1", tags=["Compare"])
 app.include_router(fault_router, prefix="/api/v1", tags=["Fault"])
 app.include_router(history_router, prefix="/api/v1", tags=["History"])
 app.include_router(surrogate_router, prefix="/api/v1", tags=["Surrogate"])
+app.include_router(redeploy_router, prefix="/api/v1", tags=["Redeploy"])
+
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import ErrorBanner from './components/shared/ErrorBanner';
 import Visualizer from './components/Visualizer/Visualizer';
 import HistoryPanel from './components/HistoryPanel/HistoryPanel';
 import SurrogateStatusCard from './components/SurrogateStatus/SurrogateStatusCard';
+import RedeployPanel from './components/RedeployPanel/RedeployPanel';
 import { useOptimizationJob } from './hooks/useOptimizationJob';
 
 const TABS = [
@@ -21,9 +22,13 @@ export default function App() {
   const [historyResult, setHistoryResult] = useState(null);
   const [historyConfig, setHistoryConfig] = useState(null);
 
+  // Holds redeployed positions if user triggered DQN redeployment
+  const [redeployedPositions, setRedeployedPositions] = useState(null);
+
   const handleSubmit = (config) => {
     setLastConfig(config);
     setHistoryResult(null); // clear any history-loaded result
+    setRedeployedPositions(null);
     submitJob(config);
   };
 
@@ -31,11 +36,25 @@ export default function App() {
   const handleLoadFromHistory = (resultDoc, config) => {
     setHistoryResult(resultDoc);
     setHistoryConfig(config);
+    setRedeployedPositions(null);
     setActiveTab('optimizer');
   };
 
-  // Which result to show: live job result or history-loaded
-  const displayResult = result || historyResult;
+  const handleRedeployComplete = (redeployedData) => {
+    if (redeployedData && redeployedData.new_positions) {
+      setRedeployedPositions(redeployedData.new_positions);
+    }
+  };
+
+  // Which result to show: live job result or history-loaded, with optional redeployed positions
+  let displayResult = result || historyResult;
+  if (displayResult && redeployedPositions) {
+    displayResult = {
+      ...displayResult,
+      best_positions: redeployedPositions,
+    };
+  }
+
   const displayConfig = lastConfig || historyConfig;
 
   let errorMsg = null;
@@ -108,7 +127,7 @@ export default function App() {
         {/* ── Optimizer Tab ───────────────────────────────────────────── */}
         {activeTab === 'optimizer' && (
           <div className="workspace-grid">
-            {/* Left panel: configuration & surrogate status */}
+            {/* Left panel: configuration & ML status panels */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <ConfigPanel
                 onSubmit={handleSubmit}
@@ -120,7 +139,14 @@ export default function App() {
                 surrogateUsed={displayResult?.surrogate_used}
                 iterationsTotal={displayConfig?.pso_params?.iterations || 500}
               />
+              <RedeployPanel
+                positions={displayResult?.best_positions}
+                area={displayConfig?.area || { width: 100, height: 100 }}
+                sensingRadius={displayConfig?.sensing_radius || 15}
+                onRedeployComplete={handleRedeployComplete}
+              />
             </div>
+
 
 
             {/* Right panel: status + visualizer */}
