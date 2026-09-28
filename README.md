@@ -182,10 +182,25 @@ Evaluated on a **200m × 200m City Grid** with **100 Cameras** ($R_s = 15.1\text
 
 ## 💻 Developer Setup & Installation
 
-### Prerequisites
+### 🐳 Quick Start with Docker Compose (Recommended)
+Launch the full stack (FastAPI backend, React frontend, and MongoDB database) with a single command:
+
+```bash
+docker compose up --build
+```
+- **Frontend Web App**: [`http://localhost:5173`](http://localhost:5173)
+- **Backend API & Swagger Docs**: [`http://localhost:8000/docs`](http://localhost:8000/docs)
+- **MongoDB Instance**: `mongodb://localhost:27017`
+
+---
+
+### 🛠️ Manual Development Setup
+
+#### Prerequisites
 - **Python**: `3.11` or higher
 - **Node.js**: `18.x` or higher (`npm` included)
 - **MongoDB**: Local instance running on `mongodb://localhost:27017` or Docker
+
 
 ### Backend Setup
 ```bash
