@@ -21,7 +21,7 @@ from app.validators.fault_validator import validate_fault_input
 from app.services import fault_service
 
 
-def handle_fault_inject(job_id: str, dropout_percent: float, seed: int | None = None) -> dict:
+async def handle_fault_inject(job_id: str, dropout_percent: float, seed: int | None = None) -> dict:
     """
     POST /fault-inject — validate inputs → run injection → return result.
     Raises 422 for invalid inputs, 404 if the job doesn't exist or isn't done.
@@ -31,7 +31,7 @@ def handle_fault_inject(job_id: str, dropout_percent: float, seed: int | None = 
         raise HTTPException(status_code=422, detail={"errors": errors})
 
     try:
-        result = fault_service.run_fault_injection(job_id, dropout_percent, seed=seed)
+        result = await fault_service.run_fault_injection(job_id, dropout_percent, seed=seed)
     except ValueError as exc:
         msg = str(exc)
         # Distinguish "not found" from "not complete" to return appropriate codes

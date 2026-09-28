@@ -95,12 +95,12 @@ export default function SurrogateStatusCard({ isOptimizing, surrogateUsed, itera
       <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Runs in DB:</span>
-          <strong style={{ color: 'var(--text-primary)' }}>{runs_available} / 50</strong>
+          <strong style={{ color: 'var(--text-primary)' }}>{runs_available} / 5</strong>
         </div>
         {!trained && runs_needed > 0 && (
           <div style={{ width: '100%', height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
             <div style={{
-              width: `${Math.min(100, (runs_available / 50) * 100)}%`,
+              width: `${Math.min(100, (runs_available / 5) * 100)}%`,
               height: '100%',
               background: 'var(--color-primary)',
             }} />
@@ -123,16 +123,16 @@ export default function SurrogateStatusCard({ isOptimizing, surrogateUsed, itera
       {/* Retrain button */}
       <button
         onClick={handleRetrain}
-        disabled={isTraining || runs_available < 50}
+        disabled={isTraining || runs_available < 5}
         style={{
           padding: '0.5rem 0.8rem',
           border: '1px solid var(--border-color)',
           borderRadius: '6px',
-          background: runs_available >= 50 ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.03)',
-          color: runs_available >= 50 ? 'var(--color-primary)' : 'var(--text-muted)',
+          background: runs_available >= 5 ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.03)',
+          color: runs_available >= 5 ? 'var(--color-primary)' : 'var(--text-muted)',
           fontSize: '0.82rem',
           fontWeight: 600,
-          cursor: runs_available >= 50 && !isTraining ? 'pointer' : 'not-allowed',
+          cursor: runs_available >= 5 && !isTraining ? 'pointer' : 'not-allowed',
           transition: 'all 0.15s ease',
         }}
       >

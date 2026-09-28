@@ -15,8 +15,10 @@ Design notes:
 """
 
 import os
+import asyncio
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +27,31 @@ _DB_NAME = "sensor_optimizer"
 
 
 def _get_client() -> AsyncIOMotorClient:
-    """Return the shared Motor client, creating it on first call."""
+    """Return the shared Motor client, recreating it if the loop has changed or closed."""
     global _client
+    url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _client is not None:
+        client_loop = getattr(_client, "_attached_loop", None)
+        if client_loop is None or client_loop.is_closed() or (current_loop is not None and client_loop is not current_loop):
+            try:
+                _client.close()
+            except Exception:
+                pass
+            _client = None
+
     if _client is None:
-        url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
         _client = AsyncIOMotorClient(url, serverSelectionTimeoutMS=5000)
+        _client._attached_loop = current_loop
         logger.info("MongoDB client created (url=%s)", url)
+
     return _client
+
 
 
 def get_database() -> AsyncIOMotorDatabase:

@@ -11,9 +11,9 @@ describe('useConfigStore - weights state', () => {
 
   it('should initialize with default weights summing to 1.0', () => {
     const { weights } = useConfigStore.getState().config;
-    expect(weights.w1).toBe(0.5);
-    expect(weights.w2).toBe(0.25);
-    expect(weights.w3).toBe(0.25);
+    expect(weights.w1).toBe(0.7);
+    expect(weights.w2).toBe(0.15);
+    expect(weights.w3).toBe(0.15);
     expect(weights.w1 + weights.w2 + weights.w3).toBe(1.0);
   });
 

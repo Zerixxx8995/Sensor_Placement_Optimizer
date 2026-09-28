@@ -53,16 +53,6 @@ def stream_job(job_id: str):
             status_code=404, detail=f"Job '{job_id}' not found."
         )
 
-    # If the job is already complete or failed, yield a single terminal event
-    if job["status"] == "complete":
-        def generate_static_complete():
-            yield f"data: {json.dumps({'event': 'complete', 'result': handle_result(job_id)})}\n\n"
-        return StreamingResponse(generate_static_complete(), media_type="text/event-stream")
-    elif job["status"] == "failed":
-        def generate_static_failed():
-            yield f"data: {json.dumps({'event': 'failed', 'error': job.get('error', 'unknown error')})}\n\n"
-        return StreamingResponse(generate_static_failed(), media_type="text/event-stream")
-
     q = job_store.subscribe_job(job_id)
 
     def event_generator():

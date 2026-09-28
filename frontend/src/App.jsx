@@ -14,13 +14,16 @@ const TABS = [
 ];
 
 export default function App() {
-  const { jobId, status, result, error, isLoading, submitJob } = useOptimizationJob();
+  const { jobId, status, result, error, isLoading, submitJob, resetJob } = useOptimizationJob();
   const [activeTab, setActiveTab] = useState('optimizer');
   const [lastConfig, setLastConfig] = useState(null);
 
   // Holds a result loaded from history (so it can be replayed in the visualizer)
   const [historyResult, setHistoryResult] = useState(null);
   const [historyConfig, setHistoryConfig] = useState(null);
+
+  // Holds dead node indices if fault injection was run
+  const [deadNodeIndices, setDeadNodeIndices] = useState([]);
 
   // Holds redeployed positions if user triggered DQN redeployment
   const [redeployedPositions, setRedeployedPositions] = useState(null);
@@ -29,20 +32,24 @@ export default function App() {
     setLastConfig(config);
     setHistoryResult(null); // clear any history-loaded result
     setRedeployedPositions(null);
+    setDeadNodeIndices([]);
     submitJob(config);
   };
 
-  // When user clicks "Load" in History tab, switch to Optimizer tab and show result
+  // When user clicks "Load" in History tab, clear active job state & switch to Optimizer tab
   const handleLoadFromHistory = (resultDoc, config) => {
+    resetJob();
     setHistoryResult(resultDoc);
     setHistoryConfig(config);
     setRedeployedPositions(null);
+    setDeadNodeIndices([]);
     setActiveTab('optimizer');
   };
 
   const handleRedeployComplete = (redeployedData) => {
     if (redeployedData && redeployedData.new_positions) {
       setRedeployedPositions(redeployedData.new_positions);
+      setDeadNodeIndices([]);
     }
   };
 
@@ -141,6 +148,7 @@ export default function App() {
               />
               <RedeployPanel
                 positions={displayResult?.best_positions}
+                deadNodeIndices={deadNodeIndices}
                 area={displayConfig?.area || { width: 100, height: 100 }}
                 sensingRadius={displayConfig?.sensing_radius || 15}
                 onRedeployComplete={handleRedeployComplete}
@@ -206,50 +214,14 @@ export default function App() {
                     <StatusBadge status={status} />
                   </div>
 
-                  {/* Spinner while pending */}
-                  {status === 'pending' && (
-                    <div style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      justifyContent: 'center', minHeight: '300px', gap: '1rem',
-                    }}>
-                      <div style={{
-                        width: '40px', height: '40px',
-                        border: '3px solid rgba(99, 102, 241, 0.1)',
-                        borderTop: '3px solid var(--color-primary)',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                      }} />
-                      <style>{`
-                        @keyframes spin {
-                          0%   { transform: rotate(0deg); }
-                          100% { transform: rotate(360deg); }
-                        }
-                      `}</style>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                        Initializing optimization engine on backend…
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Failed state */}
-                  {status === 'failed' && (
-                    <div style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      justifyContent: 'center', minHeight: '300px',
-                      color: 'var(--text-muted)', gap: '0.5rem',
-                    }}>
-                      <span style={{ fontSize: '3rem' }}>&times;</span>
-                      <p>Optimization failed. Check error log above.</p>
-                    </div>
-                  )}
-
-                  {/* Success or Running: Visualizer */}
-                  {(status === 'running' || status === 'complete') && (
+                  {/* Success, Running, or Pending: Visualizer */}
+                  {(status === 'pending' || status === 'running' || status === 'complete') && (
                     <Visualizer
                       result={displayResult}
                       config={displayConfig}
                       jobId={jobId}
                       status={status}
+                      onFaultChange={setDeadNodeIndices}
                     />
                   )}
                 </div>
@@ -278,6 +250,7 @@ export default function App() {
                     config={historyConfig}
                     jobId={historyResult.job_id}
                     status="complete"
+                    onFaultChange={setDeadNodeIndices}
                   />
                 </div>
               ) : (

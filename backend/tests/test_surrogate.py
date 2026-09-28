@@ -77,17 +77,17 @@ def test_predict_faster_than_analytical():
 
 @pytest.mark.asyncio
 async def test_training_threshold():
-    """assert training triggers correctly at 50 run threshold."""
+    """assert training triggers correctly at 5 run threshold."""
     with patch("app.db.repositories.run_repository.count_runs", new_callable=AsyncMock) as mock_count:
-        mock_count.return_value = 40
+        mock_count.return_value = 3
         status = await surrogate_service.get_surrogate_status()
-        assert status["runs_needed"] == 10
-        assert status["runs_available"] == 40
+        assert status["runs_needed"] == 2
+        assert status["runs_available"] == 3
 
-        mock_count.return_value = 55
+        mock_count.return_value = 6
         status_ready = await surrogate_service.get_surrogate_status()
         assert status_ready["runs_needed"] == 0
-        assert status_ready["runs_available"] == 55
+        assert status_ready["runs_available"] == 6
 
 
 def test_pso_switching_logic():

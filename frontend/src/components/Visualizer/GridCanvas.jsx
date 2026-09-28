@@ -61,30 +61,45 @@ export default function GridCanvas({
     // Clear
     ctx.clearRect(0, 0, W, H);
 
+    const PADDING = 16;
+    const innerW = Math.max(1, W - 2 * PADDING);
+    const innerH = Math.max(1, H - 2 * PADDING);
+
     // ── Layer 1: Coverage heatmap ───────────────────────────────────────────
     if (coverageMap && coverageMap.length > 0) {
       const rows = coverageMap.length;
       const cols = coverageMap[0].length;
-      const cellW = W / cols;
-      const cellH = H / rows;
+      const cellW = innerW / cols;
+      const cellH = innerH / rows;
 
-      // Use ImageData for performance (single pixel-buffer flush)
+      ctx.fillStyle = '#0b0d17';
+      ctx.fillRect(0, 0, W, H);
+
       const imageData = ctx.createImageData(W, H);
       const data = imageData.data;
+
+      // Fill background dark first
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = 11;
+        data[i + 1] = 13;
+        data[i + 2] = 23;
+        data[i + 3] = 255;
+      }
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           const val = coverageMap[row][col];
           const [r, g, b] = valueToViridisRGB(val);
 
-          // Fill every pixel in this cell
-          const x0 = Math.round(col * cellW);
-          const y0 = Math.round(row * cellH);
-          const x1 = Math.round((col + 1) * cellW);
-          const y1 = Math.round((row + 1) * cellH);
+          const x0 = Math.round(PADDING + col * cellW);
+          const y0 = Math.round(PADDING + row * cellH);
+          const x1 = Math.round(PADDING + (col + 1) * cellW);
+          const y1 = Math.round(PADDING + (row + 1) * cellH);
 
           for (let py = y0; py < y1; py++) {
+            if (py < 0 || py >= H) continue;
             for (let px = x0; px < x1; px++) {
+              if (px < 0 || px >= W) continue;
               const idx = (py * W + px) * 4;
               data[idx]     = r;
               data[idx + 1] = g;
@@ -105,20 +120,20 @@ export default function GridCanvas({
       ctx.lineWidth = 0.5;
       const gridLines = 20;
       for (let i = 0; i <= gridLines; i++) {
-        const x = (i / gridLines) * W;
-        const y = (i / gridLines) * H;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        const x = PADDING + (i / gridLines) * innerW;
+        const y = PADDING + (i / gridLines) * innerH;
+        ctx.beginPath(); ctx.moveTo(x, PADDING); ctx.lineTo(x, H - PADDING); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PADDING, y); ctx.lineTo(W - PADDING, y); ctx.stroke();
       }
     }
 
     if (positions.length === 0) return;
 
     // ── Layer 2: Sensing radius rings ───────────────────────────────────────
-    const rsPixels = (sensingRadius / areaWidth) * W;
+    const rsPixels = (sensingRadius / areaWidth) * innerW;
     positions.forEach(([wx, wy], idx) => {
       if (failedIndices.includes(idx)) return;
-      const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H);
+      const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H, PADDING);
       ctx.beginPath();
       ctx.arc(px, py, rsPixels, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(99, 102, 241, 0.25)';
@@ -134,10 +149,10 @@ export default function GridCanvas({
     commLinks.forEach(([i, j]) => {
       if (failedIndices.includes(i) || failedIndices.includes(j)) return;
       const { px: x1, py: y1 } = worldToCanvas(
-        positions[i][0], positions[i][1], areaWidth, areaHeight, W, H
+        positions[i][0], positions[i][1], areaWidth, areaHeight, W, H, PADDING
       );
       const { px: x2, py: y2 } = worldToCanvas(
-        positions[j][0], positions[j][1], areaWidth, areaHeight, W, H
+        positions[j][0], positions[j][1], areaWidth, areaHeight, W, H, PADDING
       );
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -148,13 +163,19 @@ export default function GridCanvas({
     // ── Layer 4: Sensor nodes ───────────────────────────────────────────────
     const nodeRadius = Math.max(4, Math.min(8, W / 80));
     positions.forEach(([wx, wy], idx) => {
-      const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H);
+      const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H, PADDING);
 
       if (failedIndices.includes(idx)) {
+        // Red halo behind failed node
+        ctx.beginPath();
+        ctx.arc(px, py, nodeRadius * 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+        ctx.fill();
+
         // Draw red ✕ marker for failed node
         ctx.beginPath();
-        ctx.strokeStyle = 'var(--color-danger)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
         const size = nodeRadius;
         ctx.moveTo(px - size, py - size);
         ctx.lineTo(px + size, py + size);

@@ -14,9 +14,9 @@ import React from 'react';
  *  liveFitness    {number|null}  Current global best fitness value.
  */
 export default function LiveMetrics({ result, status, liveIteration = 0, liveFitness = null }) {
-  const isRunning = status === 'running';
+  const isOptimizing = status === 'pending' || status === 'running';
 
-  if (!result && !isRunning) {
+  if (!result && !isOptimizing) {
     return (
       <div className="live-metrics live-metrics--empty">
         <span>Run optimization to see live metrics.</span>
@@ -25,15 +25,15 @@ export default function LiveMetrics({ result, status, liveIteration = 0, liveFit
   }
 
   // Extract metrics or fallback depending on running state
-  const bestPositions = isRunning ? (result?.best_positions ?? []) : (result?.best_positions ?? []);
-  const iterationsRun = isRunning ? liveIteration : (result?.iterations_run ?? 0);
+  const bestPositions = isOptimizing ? (result?.best_positions ?? []) : (result?.best_positions ?? []);
+  const iterationsRun = isOptimizing ? liveIteration : (result?.iterations_run ?? 0);
 
-  const coverageVal = isRunning ? '--%' : `${((result?.coverage_ratio ?? 0) * 100).toFixed(1)}%`;
-  const connectivityVal = isRunning ? '--%' : `${((result?.connectivity_ratio ?? 0) * 100).toFixed(1)}%`;
-  const energyVal = isRunning ? '-- J' : `${(result?.avg_energy ?? 0).toFixed(3)} J`;
+  const coverageVal = isOptimizing ? '--%' : `${((result?.coverage_ratio ?? 0) * 100).toFixed(1)}%`;
+  const connectivityVal = isOptimizing ? '--%' : `${((result?.connectivity_ratio ?? 0) * 100).toFixed(1)}%`;
+  const energyVal = isOptimizing ? '-- J' : `${(result?.avg_energy ?? 0).toFixed(3)} J`;
 
   const sensorsVal = bestPositions.length;
-  const sensorsSub = isRunning
+  const sensorsSub = isOptimizing
     ? `Iter ${iterationsRun} · Fit: ${liveFitness !== null ? liveFitness.toFixed(4) : '--'}`
     : `${iterationsRun} iters · ${(result?.compute_time_seconds ?? 0).toFixed(2)}s`;
 

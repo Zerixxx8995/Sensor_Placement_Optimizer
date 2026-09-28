@@ -170,7 +170,7 @@ def compute_fitness(
     w1 = float(config["w1"])
     w2 = float(config["w2"])
     w3 = float(config["w3"])
-    sink = config.get("sink", (0.0, 0.0))
+    sink = config.get("sink") if config.get("sink") is not None else (area_W / 2.0, area_H / 2.0)
     restricted_mask = config.get("restricted_mask", None)
 
     # Clamp positions for fitness evaluation (penalty handles OOB separately)

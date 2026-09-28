@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 CHECKPOINT_DIR = Path(__file__).resolve().parent.parent.parent / "checkpoints"
 CHECKPOINT_PATH = CHECKPOINT_DIR / "surrogate.pt"
-TRAINING_THRESHOLD = 50
-RETRAIN_INTERVAL = 10
+TRAINING_THRESHOLD = 5
+RETRAIN_INTERVAL = 5
 
 
 def get_checkpoint_path() -> Path:

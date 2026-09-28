@@ -38,7 +38,7 @@ export default function ParticleLayer({ particles = [], areaWidth = 100, areaHei
       particle.forEach((node) => {
         if (!node || node.length < 2) return;
         const [wx, wy] = node;
-        const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H);
+        const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H, 16);
 
         ctx.beginPath();
         ctx.arc(px, py, 1.8, 0, Math.PI * 2);
@@ -73,7 +73,7 @@ export default function ParticleLayer({ particles = [], areaWidth = 100, areaHei
           particle.forEach((node) => {
             if (!node || node.length < 2) return;
             const [wx, wy] = node;
-            const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H);
+            const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H, 16);
             ctx.beginPath();
             ctx.arc(px, py, 1.8, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(168, 85, 247, 0.45)';

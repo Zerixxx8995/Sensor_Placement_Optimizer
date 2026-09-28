@@ -208,7 +208,8 @@ def _run_gpu_impl(config: dict, on_iteration=None) -> dict:
     lam = float(config.get("lam", 0.5))
     cell_size = float(config.get("cell_size", 1.0))
     seed = config.get("seed", None)
-    sink = tuple(config.get("sink", (0.0, 0.0)))
+    default_sink = (area_W / 2.0, area_H / 2.0)
+    sink = tuple(config["sink"]) if config.get("sink") is not None else default_sink
 
     pso_params = config.get("pso_params", {})
     P = int(pso_params.get("swarm_size", 30))
@@ -229,9 +230,25 @@ def _run_gpu_impl(config: dict, on_iteration=None) -> dict:
     rng = np.random.default_rng(seed)
 
     # --- Swarm initialisation ---
-    positions = rng.uniform(
-        low=[0.0, 0.0], high=[area_W, area_H], size=(P, N, 2)
-    ).astype(np.float64)
+    positions = np.zeros((P, N, 2), dtype=np.float64)
+    grid_cols = int(np.ceil(np.sqrt(N * (area_W / area_H))))
+    grid_rows = int(np.ceil(N / max(1, grid_cols)))
+    grid_xs = np.linspace(area_W * 0.05, area_W * 0.95, max(1, grid_cols))
+    grid_ys = np.linspace(area_H * 0.05, area_H * 0.95, max(1, grid_rows))
+    gx, gy = np.meshgrid(grid_xs, grid_ys)
+    base_grid = np.column_stack([gx.ravel(), gy.ravel()])[:N]
+
+    if len(base_grid) < N:
+        extra = rng.uniform([0.0, 0.0], [area_W, area_H], size=(N - len(base_grid), 2))
+        base_grid = np.vstack([base_grid, extra])
+
+    for i in range(P):
+        if i < P // 2:
+            jitter = rng.normal(0.0, max(area_W, area_H) * 0.05, size=(N, 2))
+            positions[i] = np.clip(base_grid + jitter, [0.0, 0.0], [area_W, area_H])
+        else:
+            positions[i] = rng.uniform(low=[0.0, 0.0], high=[area_W, area_H], size=(N, 2))
+
     v_max = np.array([area_W, area_H]) * 0.1
     velocities = rng.uniform(low=-v_max, high=v_max, size=(P, N, 2)).astype(np.float64)
 
@@ -289,16 +306,34 @@ def _run_gpu_impl(config: dict, on_iteration=None) -> dict:
     t_start = time.perf_counter()
 
     for g in range(1, G + 1):
-        r1 = rng.uniform(0.0, 1.0, size=(P, N, 2))
-        r2 = rng.uniform(0.0, 1.0, size=(P, N, 2))
+        omega_g = omega * (1.0 - 0.5 * (g / G))
+
+        from app.core.pso import _match_nodes
+
+        # Spatial nearest-neighbor matching for cognitive & social targets
+        pbest_matched = np.array([_match_nodes(positions[i], pbest_pos[i]) for i in range(P)])
+        gbest_matched = np.array([_match_nodes(positions[i], gbest_pos) for i in range(P)])
 
         velocities = (
-            omega * velocities
-            + c1 * r1 * (pbest_pos - positions)
-            + c2 * r2 * (gbest_pos[np.newaxis] - positions)
+            omega_g * velocities
+            + c1 * r1 * (pbest_matched - positions)
+            + c2 * r2 * (gbest_matched - positions)
         )
         velocities = np.clip(velocities, -v_max, v_max)
         positions = positions + velocities
+
+        # Clamp positions strictly to deployment field bounds
+        oob_low_x = positions[:, :, 0] < 0.0
+        oob_high_x = positions[:, :, 0] > area_W
+        oob_low_y = positions[:, :, 1] < 0.0
+        oob_high_y = positions[:, :, 1] > area_H
+
+        positions[:, :, 0] = np.clip(positions[:, :, 0], 0.0, area_W)
+        positions[:, :, 1] = np.clip(positions[:, :, 1], 0.0, area_H)
+
+        # Reflect velocities for nodes that hit boundaries
+        velocities[:, :, 0][oob_low_x | oob_high_x] *= -0.5
+        velocities[:, :, 1][oob_low_y | oob_high_y] *= -0.5
 
         fitnesses = _eval_fitness(positions)
 
@@ -317,6 +352,7 @@ def _run_gpu_impl(config: dict, on_iteration=None) -> dict:
             clamped_positions = np.clip(positions, [0.0, 0.0], [area_W, area_H])
             clamped_gbest_pos = np.clip(gbest_pos, [0.0, 0.0], [area_W, area_H])
             on_iteration(g, clamped_positions, clamped_gbest_pos, gbest_fit)
+            time.sleep(max(0.002, min(0.01, 3.0 / G)))
 
     compute_time = time.perf_counter() - t_start
 

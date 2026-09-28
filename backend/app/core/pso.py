@@ -31,12 +31,17 @@ def _build_fitness_config(config: dict) -> dict:
     top-level PSO config dict.
     """
     area = config["area"]
+    area_W = float(area["width"])
+    area_H = float(area["height"])
     weights = config["weights"]
     pso_params = config.get("pso_params", {})
 
+    default_sink = (area_W / 2.0, area_H / 2.0)
+    sink = tuple(config["sink"]) if config.get("sink") is not None else default_sink
+
     return {
-        "area_W": float(area["width"]),
-        "area_H": float(area["height"]),
+        "area_W": area_W,
+        "area_H": area_H,
         "Rs": float(config["sensing_radius"]),
         "Rc": float(config["comm_radius"]),
         "lam": float(config.get("lam", 0.5)),
@@ -44,7 +49,7 @@ def _build_fitness_config(config: dict) -> dict:
         "w1": float(weights["w1"]),
         "w2": float(weights["w2"]),
         "w3": float(weights["w3"]),
-        "sink": tuple(config.get("sink", (0.0, 0.0))),
+        "sink": sink,
         "restricted_mask": config.get("restricted_mask", None),
     }
 
@@ -82,30 +87,30 @@ def _build_restricted_mask(
     return mask
 
 
+def _match_nodes(X: np.ndarray, Target: np.ndarray) -> np.ndarray:
+    """
+    Match each node in X (N, 2) to the nearest unassigned node in Target (N, 2)
+    using greedy spatial distance matching to prevent node permutation crossing.
+    """
+    N = X.shape[0]
+    matched = np.zeros_like(X)
+    available_mask = np.ones(N, dtype=bool)
+
+    dists = np.sum((X[:, np.newaxis, :] - Target[np.newaxis, :, :]) ** 2, axis=2)
+
+    for i in range(N):
+        dists_i = dists[i].copy()
+        dists_i[~available_mask] = np.inf
+        best_j = int(np.argmin(dists_i))
+        matched[i] = Target[best_j]
+        available_mask[best_j] = False
+
+    return matched
+
+
 def run_pso(config: dict, on_iteration=None, surrogate_model=None) -> dict:
     """
     Run the PSO optimization and return the best sensor deployment found.
-
-    Args:
-        config: Top-level configuration dict matching OptimizationConfig schema
-        on_iteration: Optional callback on_iteration(g, positions, gbest_pos, gbest_fit)
-        surrogate_model: Optional PyTorch FitnessSurrogateMLP model. If provided,
-                         used for fitness prediction during iterations 1 to 0.7*G.
-
-    Returns:
-        {
-          "best_positions":    np.ndarray of shape (num_nodes, 2),
-          "fitness_history":   list of float (one per iteration),
-          "coverage_map":      np.ndarray of shape (rows, cols),
-          "coverage_ratio":    float,
-          "connectivity_ratio": float,
-          "avg_energy":        float,
-          "compute_time_seconds": float,
-          "iterations_run":    int,
-          "gpu_used":          bool,
-          "surrogate_used":    bool,
-          "surrogate_switch_iteration": int | None,
-        }
     """
     # --- Unpack config ---
     area = config["area"]
@@ -138,9 +143,25 @@ def run_pso(config: dict, on_iteration=None, surrogate_model=None) -> dict:
     rng = np.random.default_rng(seed)
 
     # --- Initialise swarm ---
-    positions = rng.uniform(
-        low=[0.0, 0.0], high=[area_W, area_H], size=(P, N, 2)
-    )
+    positions = np.zeros((P, N, 2), dtype=np.float64)
+    grid_cols = int(np.ceil(np.sqrt(N * (area_W / area_H))))
+    grid_rows = int(np.ceil(N / max(1, grid_cols)))
+    grid_xs = np.linspace(area_W * 0.05, area_W * 0.95, max(1, grid_cols))
+    grid_ys = np.linspace(area_H * 0.05, area_H * 0.95, max(1, grid_rows))
+    gx, gy = np.meshgrid(grid_xs, grid_ys)
+    base_grid = np.column_stack([gx.ravel(), gy.ravel()])[:N]
+
+    if len(base_grid) < N:
+        extra = rng.uniform([0.0, 0.0], [area_W, area_H], size=(N - len(base_grid), 2))
+        base_grid = np.vstack([base_grid, extra])
+
+    for i in range(P):
+        if i < P // 2:
+            jitter = rng.normal(0.0, max(area_W, area_H) * 0.05, size=(N, 2))
+            positions[i] = np.clip(base_grid + jitter, [0.0, 0.0], [area_W, area_H])
+        else:
+            positions[i] = rng.uniform(low=[0.0, 0.0], high=[area_W, area_H], size=(N, 2))
+
     v_max = np.array([area_W, area_H]) * 0.1
     velocities = rng.uniform(low=-v_max, high=v_max, size=(P, N, 2))
 
@@ -169,19 +190,38 @@ def run_pso(config: dict, on_iteration=None, surrogate_model=None) -> dict:
     t_start = time.perf_counter()
 
     for g in range(1, G + 1):
+        omega_g = omega * (1.0 - 0.5 * (g / G))
+
         r1 = rng.uniform(0.0, 1.0, size=(P, N, 2))
         r2 = rng.uniform(0.0, 1.0, size=(P, N, 2))
 
+        # Spatial nearest-neighbor matching for cognitive & social targets
+        pbest_matched = np.array([_match_nodes(positions[i], pbest_pos[i]) for i in range(P)])
+        gbest_matched = np.array([_match_nodes(positions[i], gbest_pos) for i in range(P)])
+
         # Velocity update
         velocities = (
-            omega * velocities
-            + c1 * r1 * (pbest_pos - positions)
-            + c2 * r2 * (gbest_pos[np.newaxis, :, :] - positions)
+            omega_g * velocities
+            + c1 * r1 * (pbest_matched - positions)
+            + c2 * r2 * (gbest_matched - positions)
         )
         velocities = np.clip(velocities, -v_max, v_max)
 
-        # Position update
+        # Position update & boundary enforcement
         positions = positions + velocities
+
+        # Clamp positions strictly to deployment field bounds
+        oob_low_x = positions[:, :, 0] < 0.0
+        oob_high_x = positions[:, :, 0] > area_W
+        oob_low_y = positions[:, :, 1] < 0.0
+        oob_high_y = positions[:, :, 1] > area_H
+
+        positions[:, :, 0] = np.clip(positions[:, :, 0], 0.0, area_W)
+        positions[:, :, 1] = np.clip(positions[:, :, 1], 0.0, area_H)
+
+        # Reflect velocities for nodes that hit boundaries
+        velocities[:, :, 0][oob_low_x | oob_high_x] *= -0.5
+        velocities[:, :, 1][oob_low_y | oob_high_y] *= -0.5
 
         # Evaluate fitness for all particles
         if surrogate_used and g <= switch_iter:
@@ -210,6 +250,7 @@ def run_pso(config: dict, on_iteration=None, surrogate_model=None) -> dict:
             clamped_positions = np.clip(positions, [0.0, 0.0], [area_W, area_H])
             clamped_gbest_pos = np.clip(gbest_pos, [0.0, 0.0], [area_W, area_H])
             on_iteration(g, clamped_positions, clamped_gbest_pos, gbest_fit)
+            time.sleep(max(0.002, min(0.01, 3.0 / G)))
 
     compute_time = time.perf_counter() - t_start
 

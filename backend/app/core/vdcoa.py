@@ -176,6 +176,7 @@ def run_vdcoa_refinement(
 
         if on_iteration is not None:
             on_iteration(i, best_pos[np.newaxis, :, :], best_pos, best_fit)
+            time.sleep(max(0.002, min(0.01, 1.0 / max(1, chaos_iterations))))
 
     compute_time = pso_result["compute_time_seconds"] + (time.perf_counter() - t_start)
 

@@ -6,7 +6,7 @@ const DEFAULT_CONFIG = {
   sensing_radius: 15,
   comm_radius: 30,
   initial_energy: 1.0,
-  weights: { w1: 0.5, w2: 0.25, w3: 0.25 },
+  weights: { w1: 0.7, w2: 0.15, w3: 0.15 },
   pso_params: {
     swarm_size: 30,
     iterations: 500,

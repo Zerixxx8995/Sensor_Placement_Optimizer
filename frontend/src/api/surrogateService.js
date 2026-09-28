@@ -1,11 +1,9 @@
-import httpClient from './httpClient';
+import { httpClient } from './httpClient';
 
 export async function getSurrogateStatus() {
-  const response = await httpClient.get('/surrogate/status');
-  return response.data;
+  return httpClient.get('/surrogate/status');
 }
 
 export async function trainSurrogate(epochs = 50) {
-  const response = await httpClient.post(`/surrogate/train?epochs=${epochs}`);
-  return response.data;
+  return httpClient.post(`/surrogate/train?epochs=${epochs}`);
 }

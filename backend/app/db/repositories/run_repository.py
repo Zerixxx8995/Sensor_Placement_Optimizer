@@ -35,11 +35,13 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Any
+import numpy as np
 
 from bson import ObjectId
 from pymongo import DESCENDING
 
 from app.db.connection import get_database
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,19 @@ def _serialize(doc: dict) -> dict:
 # Public API
 # ---------------------------------------------------------------------------
 
+def _clean_for_mongo(obj: Any) -> Any:
+    """Recursively convert NumPy arrays and scalars to plain Python types for BSON serialization."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, dict):
+        return {k: _clean_for_mongo(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_clean_for_mongo(v) for v in obj]
+    return obj
+
+
 async def save_run(job_id: str, config: dict, result: dict,
                    surrogate_used: bool = False,
                    surrogate_switch_iteration: int | None = None) -> str:
@@ -74,21 +89,24 @@ async def save_run(job_id: str, config: dict, result: dict,
     Raises on any database error (caller should catch).
     """
     db = get_database()
+    cleaned_result = _clean_for_mongo(result)
+    cleaned_config = _clean_for_mongo(config)
+
     doc = {
         "job_id": job_id,
         "created_at": datetime.now(timezone.utc),
-        "config": config,
+        "config": cleaned_config,
         "result": {
-            "coverage_ratio": result.get("coverage_ratio"),
-            "connectivity_ratio": result.get("connectivity_ratio"),
-            "avg_energy": result.get("avg_energy"),
-            "compute_time_seconds": result.get("compute_time_seconds"),
-            "iterations_run": result.get("iterations_run"),
-            "gpu_used": result.get("gpu_used", False),
-            "best_positions": result.get("best_positions", []),
-            "fitness_history": result.get("fitness_history", []),
-            "coverage_map": result.get("coverage_map", []),
-            "strategy": result.get("strategy", config.get("strategy", "pso")),
+            "coverage_ratio": cleaned_result.get("coverage_ratio"),
+            "connectivity_ratio": cleaned_result.get("connectivity_ratio"),
+            "avg_energy": cleaned_result.get("avg_energy"),
+            "compute_time_seconds": cleaned_result.get("compute_time_seconds"),
+            "iterations_run": cleaned_result.get("iterations_run"),
+            "gpu_used": cleaned_result.get("gpu_used", False),
+            "best_positions": cleaned_result.get("best_positions", []),
+            "fitness_history": cleaned_result.get("fitness_history", []),
+            "coverage_map": cleaned_result.get("coverage_map", []),
+            "strategy": cleaned_result.get("strategy", cleaned_config.get("strategy", "pso")),
         },
         "surrogate_used": surrogate_used,
         "surrogate_switch_iteration": surrogate_switch_iteration,
@@ -96,6 +114,7 @@ async def save_run(job_id: str, config: dict, result: dict,
     inserted = await db[_COLLECTION].insert_one(doc)
     logger.debug("Saved run %s → _id=%s", job_id, inserted.inserted_id)
     return str(inserted.inserted_id)
+
 
 
 async def get_run(job_id: str) -> dict | None:

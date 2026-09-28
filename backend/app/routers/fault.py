@@ -29,10 +29,10 @@ class FaultInjectRequest(BaseModel):
 
 
 @router.post("/fault-inject", status_code=200)
-def post_fault_inject(body: FaultInjectRequest):
+async def post_fault_inject(body: FaultInjectRequest):
     """
     Simulate random node failures on a completed optimization result.
     Randomly disables dropout_percent of nodes, then recomputes coverage
     and connectivity on the degraded deployment.
     """
-    return handle_fault_inject(body.job_id, body.dropout_percent, seed=body.seed)
+    return await handle_fault_inject(body.job_id, body.dropout_percent, seed=body.seed)

@@ -22,8 +22,8 @@ import { useSSEStream } from '../../hooks/useSSEStream';
  *  jobId         {string|null}  UUID of the active job.
  *  status        {string|null}  Job execution status ('running', 'complete', etc.).
  */
-export default function Visualizer({ result, config, jobId, status }) {
-  const isRunning = status === 'running';
+export default function Visualizer({ result, config, jobId, status, onFaultChange }) {
+  const isOptimizing = status === 'pending' || status === 'running';
 
   const [liveHistory, setLiveHistory] = useState([]);
   const [faultResult, setFaultResult] = useState(null);
@@ -39,6 +39,9 @@ export default function Visualizer({ result, config, jobId, status }) {
     setCompareResult(null);
     setIsComparing(false);
     setCompareError(null);
+    if (onFaultChange) {
+      onFaultChange([]);
+    }
   }, [jobId]);
 
   // Synchronously fetch baseline comparison metrics on completion
@@ -94,12 +97,12 @@ export default function Visualizer({ result, config, jobId, status }) {
     iteration,
     bestFitness,
     bestPositions,
-  } = useSSEStream(isRunning ? jobId : null, {
+  } = useSSEStream(isOptimizing ? jobId : null, {
     onIteration: handleIteration,
   });
 
-  // Map fitness history: liveHistory if running, result.fitness_history if complete
-  const chartData = isRunning
+  // Map fitness history: liveHistory if optimizing, result.fitness_history if complete
+  const chartData = isOptimizing
     ? liveHistory
     : (result?.fitness_history || []).map((val, idx) => ({
         iteration: idx,
@@ -111,9 +114,9 @@ export default function Visualizer({ result, config, jobId, status }) {
   const sensingRadius = config?.sensing_radius ?? 10;
   const commRadius = config?.comm_radius ?? 20;
 
-  // Render live positions when running, fallback to final result when complete
-  const displayResult = isRunning
-    ? { best_positions: bestPositions, coverage_map: null }
+  // Render live positions when optimizing (Global Best), fallback to final result when complete
+  const displayResult = isOptimizing
+    ? { best_positions: (bestPositions && bestPositions.length > 0 ? bestPositions : (result?.best_positions || [])), coverage_map: null }
     : faultResult
       ? {
           ...result,
@@ -128,10 +131,10 @@ export default function Visualizer({ result, config, jobId, status }) {
       <div className="visualizer-header">
         <div>
           <h2 className="visualizer-title">
-            {isRunning ? 'Optimizing Deployments...' : 'Deployment Visualizer'}
+            {isOptimizing ? 'Optimizing Deployments...' : 'Deployment Visualizer'}
           </h2>
           <p className="visualizer-subtitle">
-            {isRunning
+            {isOptimizing
               ? 'Real-time swarm convergence · Candidate nodes · Live updates'
               : 'Coverage heatmap · Sensor nodes · Communication links'}
           </p>
@@ -144,7 +147,7 @@ export default function Visualizer({ result, config, jobId, status }) {
             <span className="vis-badge vis-badge--complete">● Complete</span>
           </div>
         )}
-        {isRunning && (
+        {isOptimizing && (
           <div className="vis-badge-group">
             <span
               className="vis-badge"
@@ -176,7 +179,7 @@ export default function Visualizer({ result, config, jobId, status }) {
         sensingRadius={sensingRadius}
         commRadius={commRadius}
       >
-        {isRunning && (
+        {isOptimizing && (
           <ParticleLayer
             particles={particles}
             areaWidth={areaWidth}
@@ -201,8 +204,18 @@ export default function Visualizer({ result, config, jobId, status }) {
         <FaultInjector
           jobId={jobId}
           originalResult={result}
-          onInject={setFaultResult}
-          onReset={() => setFaultResult(null)}
+          onInject={(res) => {
+            setFaultResult(res);
+            if (onFaultChange) {
+              onFaultChange(res?.failed_indices || []);
+            }
+          }}
+          onReset={() => {
+            setFaultResult(null);
+            if (onFaultChange) {
+              onFaultChange([]);
+            }
+          }}
         />
       )}
 

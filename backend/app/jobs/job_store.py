@@ -16,6 +16,7 @@ from typing import Any
 # Module-level store — lives for the lifetime of the process.
 _store: dict[str, dict[str, Any]] = {}
 _subscribers: dict[str, list[queue.Queue]] = {}
+_history_events: dict[str, list[dict]] = {}
 _lock = threading.Lock()
 
 
@@ -28,6 +29,7 @@ def create_job(job_id: str) -> None:
             "error": None,
         }
         _subscribers[job_id] = []
+        _history_events[job_id] = []
 
 
 def get_job(job_id: str) -> dict[str, Any] | None:
@@ -70,6 +72,10 @@ def subscribe_job(job_id: str) -> queue.Queue:
     """Subscribe to receive real-time iteration events for a job."""
     with _lock:
         q = queue.Queue()
+        # Replay any iteration events that occurred before subscription
+        if job_id in _history_events:
+            for event_data in _history_events[job_id]:
+                q.put(event_data)
         if job_id not in _subscribers:
             _subscribers[job_id] = []
         _subscribers[job_id].append(q)
@@ -84,14 +90,13 @@ def unsubscribe_job(job_id: str, q: queue.Queue) -> None:
                 _subscribers[job_id].remove(q)
             except ValueError:
                 pass
-            if not _subscribers[job_id]:
-                # Keep the entry or clean it up
-                pass
 
 
 def publish_iteration(job_id: str, data: dict) -> None:
     """Send an iteration update to all active subscribers for this job."""
     with _lock:
+        if job_id in _history_events:
+            _history_events[job_id].append(data)
         if job_id in _subscribers:
             for q in _subscribers[job_id]:
                 q.put(data)
@@ -105,3 +110,4 @@ def clear_all() -> None:
     with _lock:
         _store.clear()
         _subscribers.clear()
+        _history_events.clear()

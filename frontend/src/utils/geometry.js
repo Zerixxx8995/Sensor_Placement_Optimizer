@@ -30,10 +30,12 @@ export function euclideanDistance(x1, y1, x2, y2) {
  * @param {number} canvasH     - Canvas pixel height
  * @returns {{ px: number, py: number }}
  */
-export function worldToCanvas(worldX, worldY, worldWidth, worldHeight, canvasW, canvasH) {
+export function worldToCanvas(worldX, worldY, worldWidth, worldHeight, canvasW, canvasH, padding = 16) {
+  const innerW = Math.max(1, canvasW - 2 * padding);
+  const innerH = Math.max(1, canvasH - 2 * padding);
   return {
-    px: (worldX / worldWidth) * canvasW,
-    py: (worldY / worldHeight) * canvasH,
+    px: padding + (worldX / worldWidth) * innerW,
+    py: padding + (worldY / worldHeight) * innerH,
   };
 }
 
