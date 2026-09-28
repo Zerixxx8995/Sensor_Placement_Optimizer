@@ -6,6 +6,7 @@ import Visualizer from './components/Visualizer/Visualizer';
 import HistoryPanel from './components/HistoryPanel/HistoryPanel';
 import SurrogateStatusCard from './components/SurrogateStatus/SurrogateStatusCard';
 import RedeployPanel from './components/RedeployPanel/RedeployPanel';
+import RLAgentPanel from './components/RLAgentPanel/RLAgentPanel';
 import { useOptimizationJob } from './hooks/useOptimizationJob';
 
 const TABS = [
@@ -74,9 +75,9 @@ export default function App() {
   return (
     <div className="app-container">
       <header>
-        <h1 className="app-title">PSO Sensor Placement Optimizer</h1>
+        <h1 className="app-title">Intelligent Traffic Monitoring Deployment Engine</h1>
         <p className="app-subtitle">
-          Multi-objective coverage &amp; connectivity optimization using standard and chaos-based algorithms
+          Multi-objective road coverage, network connectivity, and deployment cost optimization using PSO and RL placement agents
         </p>
 
         {/* ── Tab navigation ─────────────────────────────────────────── */}
@@ -141,6 +142,7 @@ export default function App() {
                 isLoading={isLoading}
                 error={null}
               />
+              <RLAgentPanel />
               <SurrogateStatusCard
                 isOptimizing={isLoading || status === 'running'}
                 surrogateUsed={displayResult?.surrogate_used}

@@ -47,7 +47,7 @@ def make_config(**overrides) -> OptimizationConfig:
 
 FAST_CONFIG = make_config()
 
-EXPECTED_STRATEGIES = {"random", "grid", "pso", "pso_vdcoa"}
+EXPECTED_STRATEGIES = {"random", "grid", "pso", "pso_vdcoa", "rl"}
 METRIC_KEYS = {"strategy", "coverage_ratio", "connectivity_ratio",
                "avg_energy", "compute_time_seconds"}
 
@@ -76,13 +76,13 @@ class TestRunComparisonStructure:
         result = run_comparison(FAST_CONFIG)
         assert isinstance(result["results"], list)
 
-    def test_results_has_four_entries(self):
+    def test_results_has_five_entries(self):
         result = run_comparison(FAST_CONFIG)
-        assert len(result["results"]) == 4, (
-            f"Expected 4 strategy results, got {len(result['results'])}"
+        assert len(result["results"]) == 5, (
+            f"Expected 5 strategy results, got {len(result['results'])}"
         )
 
-    def test_all_four_strategies_present(self):
+    def test_all_five_strategies_present(self):
         result = run_comparison(FAST_CONFIG)
         strategies = {r["strategy"] for r in result["results"]}
         assert strategies == EXPECTED_STRATEGIES, (

@@ -23,7 +23,8 @@ from __future__ import annotations
 
 from app.models.config import OptimizationConfig
 
-ALLOWED_STRATEGIES = {"pso", "pso_vdcoa", "random", "grid"}
+ALLOWED_STRATEGIES = {"pso", "pso_vdcoa", "random", "grid", "rl"}
+ALLOWED_METHODS = {"pso", "rl"}
 WEIGHT_TOLERANCE = 1e-6
 
 
@@ -96,11 +97,17 @@ def validate_optimize_config(config: OptimizationConfig) -> list[str]:
             f"dimension ({min_dim})."
         )
 
-    # 7. Strategy must be a known value
+    # 7. Strategy and Method must be known values
     if config.strategy not in ALLOWED_STRATEGIES:
         errors.append(
             f"strategy '{config.strategy}' is not recognised. "
             f"Allowed values: {sorted(ALLOWED_STRATEGIES)}."
+        )
+
+    if config.method not in ALLOWED_METHODS:
+        errors.append(
+            f"method '{config.method}' is not recognised. "
+            f"Allowed values: {sorted(ALLOWED_METHODS)}."
         )
 
     return errors

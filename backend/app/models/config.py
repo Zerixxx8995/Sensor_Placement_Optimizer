@@ -81,6 +81,10 @@ class OptimizationConfig(BaseModel):
     )
     strategy: str = Field(
         "pso",
-        description="Algorithm to run: 'pso', 'pso_vdcoa', 'random', 'grid'",
+        description="Algorithm to run: 'pso', 'pso_vdcoa', 'random', 'grid', 'rl'",
     )
+    method: str = Field("pso", description="Placement method: 'pso' or 'rl'")
     cell_size: float = Field(1.0, gt=0.0, description="Grid resolution (metres per cell)")
+    intersections: list[RestrictedArea] = Field(
+        default_factory=list, description="Intersection regions worth double coverage weight"
+    )

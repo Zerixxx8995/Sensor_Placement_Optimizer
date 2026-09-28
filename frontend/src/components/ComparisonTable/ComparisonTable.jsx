@@ -5,6 +5,7 @@ const STRATEGY_LABELS = {
   grid: 'Grid Placement',
   pso: 'Standard PSO Swarm',
   pso_vdcoa: 'PSO-VDCOA Hybrid',
+  rl: 'RL Placement (PPO)',
 };
 
 export default function ComparisonTable({ results, activeStrategy }) {
@@ -23,7 +24,7 @@ export default function ComparisonTable({ results, activeStrategy }) {
           Strategy Comparison Benchmarks
         </h2>
         <p className="compare-subtitle" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-          Synchronous benchmarking of standard baselines and swarm models on this configuration.
+          Synchronous benchmarking of standard baselines, swarm models, and RL placement policy on this configuration.
         </p>
       </div>
 
@@ -32,9 +33,9 @@ export default function ComparisonTable({ results, activeStrategy }) {
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 0.5rem' }}>Strategy</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Area Coverage</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Road Coverage</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Connectivity</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Avg Energy</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Deployment Cost</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Compute Time</th>
             </tr>
           </thead>

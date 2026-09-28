@@ -1,6 +1,6 @@
-# GPU-Accelerated PSO Sensor Placement Optimizer
+# Intelligent Traffic Monitoring Deployment Engine
 
-An end-to-end, high-performance web and algorithmic platform designed to solve the **Wireless Sensor Network (WSN) deployment problem**. It optimizes the spatial positioning of sensor nodes across custom 2D deployment fields to simultaneously maximize **Area Coverage**, **Network Connectivity**, and **Energy Uniformity** while strictly adhering to real-world spatial constraints such as restricted non-deployable zones and low-priority areas.
+An end-to-end, high-performance web and algorithmic platform designed to solve the **traffic camera deployment problem**. It optimizes the spatial positioning of traffic cameras across custom city grids to simultaneously maximize **Road Coverage**, **Network Connectivity**, and **Deployment Cost** while strictly adhering to real-world spatial constraints such as no-install zones (buildings) and low-priority areas.
 
 ---
 

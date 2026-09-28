@@ -23,12 +23,13 @@ from app.routers.fault import router as fault_router
 from app.routers.history import router as history_router
 from app.routers.surrogate import router as surrogate_router
 from app.routers.redeploy import router as redeploy_router
+from app.routers.ppo import router as ppo_router
 
 app = FastAPI(
-    title="PSO Sensor Placement Optimizer",
+    title="Intelligent Traffic Monitoring Deployment Engine",
     description=(
-        "GPU-accelerated Particle Swarm Optimization for Wireless Sensor "
-        "Network deployment."
+        "GPU-accelerated Particle Swarm Optimization and PPO Reinforcement Learning "
+        "for Traffic Camera Deployment."
     ),
     version="0.1.0",
     docs_url="/api/docs",
@@ -63,6 +64,7 @@ app.include_router(fault_router, prefix="/api/v1", tags=["Fault"])
 app.include_router(history_router, prefix="/api/v1", tags=["History"])
 app.include_router(surrogate_router, prefix="/api/v1", tags=["Surrogate"])
 app.include_router(redeploy_router, prefix="/api/v1", tags=["Redeploy"])
+app.include_router(ppo_router, prefix="/api/v1", tags=["PPO Agent"])
 
 
 

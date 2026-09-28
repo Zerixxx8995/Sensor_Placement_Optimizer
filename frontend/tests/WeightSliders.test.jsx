@@ -37,9 +37,9 @@ describe('WeightSliders Component', () => {
 
   it('renders all three objective sliders and sum indicator', () => {
     render(<WeightSliders />);
-    expect(screen.getByText('Coverage Weight (w1)')).toBeDefined();
-    expect(screen.getByText('Energy Weight (w2)')).toBeDefined();
-    expect(screen.getByText('Connectivity Weight (w3)')).toBeDefined();
+    expect(screen.getByText('Road Coverage Weight (w1)')).toBeDefined();
+    expect(screen.getByText('Deployment Cost Weight (w2)')).toBeDefined();
+    expect(screen.getByText('Network Connectivity Weight (w3)')).toBeDefined();
     
     expect(screen.getByText('Total Sum:')).toBeDefined();
     expect(screen.getByText('1.000')).toBeDefined();

@@ -322,7 +322,7 @@ class TestGetStream:
 # POST /api/v1/compare
 # ---------------------------------------------------------------------------
 
-EXPECTED_STRATEGIES = {"random", "grid", "pso", "pso_vdcoa"}
+EXPECTED_STRATEGIES = {"random", "grid", "pso", "pso_vdcoa", "rl"}
 STRATEGY_METRIC_KEYS = {
     "strategy", "coverage_ratio", "connectivity_ratio",
     "avg_energy", "compute_time_seconds",
@@ -355,11 +355,11 @@ class TestPostCompare:
         assert "results" in body
         assert isinstance(body["results"], list)
 
-    def test_results_has_four_entries(self, client):
+    def test_results_has_five_entries(self, client):
         results = self._post_compare(client).json()["results"]
-        assert len(results) == 4, f"Expected 4 strategy results, got {len(results)}"
+        assert len(results) == 5, f"Expected 5 strategy results, got {len(results)}"
 
-    def test_all_four_strategies_present(self, client):
+    def test_all_five_strategies_present(self, client):
         results = self._post_compare(client).json()["results"]
         returned = {r["strategy"] for r in results}
         assert returned == EXPECTED_STRATEGIES, (

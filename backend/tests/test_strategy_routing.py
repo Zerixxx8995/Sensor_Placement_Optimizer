@@ -254,8 +254,8 @@ class TestComparisonParity:
                 f"vs optimization={opt_cfg['pso_params'][param]}"
             )
 
-    def test_all_four_strategies_in_comparison(self):
-        assert set(self.rows.keys()) == {"random", "grid", "pso", "pso_vdcoa"}
+    def test_all_five_strategies_in_comparison(self):
+        assert set(self.rows.keys()) == {"random", "grid", "pso", "pso_vdcoa", "rl"}
 
     def test_random_coverage_in_range(self):
         assert 0.0 <= self.rows["random"]["coverage_ratio"] <= 1.0

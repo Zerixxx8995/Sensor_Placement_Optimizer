@@ -62,7 +62,7 @@ export const useConfigStore = create((set, get) => ({
       const currentType = state.paintedCells[cellKey];
       const newPaintedCells = { ...state.paintedCells };
 
-      if (currentType === type) {
+      if (currentType === type || type === 'road') {
         delete newPaintedCells[cellKey];
       } else {
         newPaintedCells[cellKey] = type;
@@ -71,6 +71,7 @@ export const useConfigStore = create((set, get) => ({
       const { cell_size } = state.config;
       const restricted = [];
       const nonCritical = [];
+      const intersections = [];
 
       Object.entries(newPaintedCells).forEach(([key, val]) => {
         const [c, r] = key.split(',').map(Number);
@@ -80,10 +81,12 @@ export const useConfigStore = create((set, get) => ({
           x2: (c + 1) * cell_size,
           y2: (r + 1) * cell_size,
         };
-        if (val === 'restricted') {
+        if (val === 'restricted' || val === 'building') {
           restricted.push(rect);
-        } else if (val === 'non_critical') {
+        } else if (val === 'non_critical' || val === 'low_priority') {
           nonCritical.push(rect);
+        } else if (val === 'intersection') {
+          intersections.push(rect);
         }
       });
 
@@ -93,6 +96,7 @@ export const useConfigStore = create((set, get) => ({
           ...state.config,
           restricted_areas: restricted,
           non_critical_areas: nonCritical,
+          intersections: intersections,
         },
       };
     });
@@ -105,6 +109,7 @@ export const useConfigStore = create((set, get) => ({
         ...state.config,
         restricted_areas: [],
         non_critical_areas: [],
+        intersections: [],
       },
     }));
   },
@@ -126,6 +131,7 @@ export const useConfigStore = create((set, get) => ({
 
       const restricted = [];
       const nonCritical = [];
+      const intersections = [];
 
       Object.entries(newPaintedCells).forEach(([key, val]) => {
         const [c, r] = key.split(',').map(Number);
@@ -135,10 +141,12 @@ export const useConfigStore = create((set, get) => ({
           x2: (c + 1) * cell_size,
           y2: (r + 1) * cell_size,
         };
-        if (val === 'restricted') {
+        if (val === 'restricted' || val === 'building') {
           restricted.push(rect);
-        } else if (val === 'non_critical') {
+        } else if (val === 'non_critical' || val === 'low_priority') {
           nonCritical.push(rect);
+        } else if (val === 'intersection') {
+          intersections.push(rect);
         }
       });
 
@@ -148,6 +156,7 @@ export const useConfigStore = create((set, get) => ({
           ...state.config,
           restricted_areas: restricted,
           non_critical_areas: nonCritical,
+          intersections: intersections,
         },
       };
     });

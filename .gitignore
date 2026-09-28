@@ -218,4 +218,9 @@ PSO_project_plan.md
 PSO_additions.md
 PSO_conversion.md
 
+# PyTorch checkpoints
+backend/checkpoints/*.pt
+*.pt
+
+
 

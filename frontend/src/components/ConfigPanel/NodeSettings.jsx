@@ -13,11 +13,11 @@ export default function NodeSettings() {
   return (
     <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '1.1rem', fontWeight: 600, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        Node Configuration
+        Camera Configuration
       </h3>
 
       <div className="form-group">
-        <label className="form-label">Node Count</label>
+        <label className="form-label">Camera Count</label>
         <input
           type="number"
           min="1"
@@ -29,7 +29,7 @@ export default function NodeSettings() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Sensing Radius Rs (m)</label>
+        <label className="form-label">Detection Radius Rd (m)</label>
         <input
           type="number"
           min="0.1"
@@ -42,7 +42,7 @@ export default function NodeSettings() {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Comm Radius Rc (m)</label>
+        <label className="form-label">Network Radius Rn (m)</label>
         <input
           type="number"
           min="0.1"
@@ -54,13 +54,13 @@ export default function NodeSettings() {
         />
         {config.sensing_radius >= config.comm_radius && (
           <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}>
-            Warning: Rs must be less than Rc
+            Warning: Rd must be less than Rn
           </span>
         )}
       </div>
 
       <div className="form-group">
-        <label className="form-label">Initial Energy (J)</label>
+        <label className="form-label">Initial Energy / Budget (J)</label>
         <input
           type="number"
           min="0.01"

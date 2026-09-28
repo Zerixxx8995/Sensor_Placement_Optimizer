@@ -86,6 +86,8 @@ def _to_pso_config(config: OptimizationConfig) -> dict:
         "seed": config.seed,
         "restricted_areas": [ra.model_dump() for ra in config.restricted_areas],
         "non_critical_areas": [nca.model_dump() for nca in config.non_critical_areas],
+        "intersections": [it.model_dump() for it in config.intersections],
         "cell_size": config.cell_size,
         "strategy": config.strategy,
+        "method": config.method,
     }

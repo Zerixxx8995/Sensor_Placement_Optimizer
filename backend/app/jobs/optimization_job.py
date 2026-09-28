@@ -56,11 +56,23 @@ def run_optimization_job(job_id: str, config: dict) -> None:
 
     try:
         strategy = config.get("strategy", "pso")
+        method = config.get("method", "pso")
+
+        # ---------------------------------------------------------------
+        # RL strategy (PPO placement agent)
+        # ---------------------------------------------------------------
+        if method == "rl" or strategy == "rl":
+            from app.services import ppo_placement_service
+            from app.models.config import OptimizationConfig
+
+            config_obj = OptimizationConfig.model_validate(config)
+            result = ppo_placement_service.run_ppo_placement(config_obj, job_id=job_id)
+            result["strategy"] = "rl"
 
         # ---------------------------------------------------------------
         # Baseline strategies  (instant, no iteration events)
         # ---------------------------------------------------------------
-        if strategy == "random":
+        elif strategy == "random":
             result = place_random(config)
             result["strategy"] = "random"
 

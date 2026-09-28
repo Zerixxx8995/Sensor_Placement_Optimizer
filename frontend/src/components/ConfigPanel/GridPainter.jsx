@@ -5,7 +5,7 @@ import Button from '../shared/Button';
 export default function GridPainter() {
   const { config, paintedCells, toggleCell, clearGrid } = useConfigStore();
   const { area, cell_size } = config;
-  const [paintMode, setPaintMode] = useState('restricted'); // 'restricted', 'non_critical', 'clear'
+  const [paintMode, setPaintMode] = useState('building'); // 'building', 'low_priority', 'intersection', 'road'
   const isMouseDown = useRef(false);
 
   const cols = Math.floor(area.width / cell_size) || 0;
@@ -13,7 +13,7 @@ export default function GridPainter() {
   const totalCells = cols * rows;
 
   const handleCellInteraction = (col, row) => {
-    if (paintMode === 'clear') {
+    if (paintMode === 'road') {
       const cellKey = `${col},${row}`;
       if (paintedCells[cellKey]) {
         toggleCell(col, row, paintedCells[cellKey]);
@@ -46,74 +46,92 @@ export default function GridPainter() {
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
-  const maxCellsToRender = 2500; // max grid 50x50 for fluidity (accommodates 43x43 = 1849 cells)
+  const maxCellsToRender = 2500;
   const isGridTooLarge = totalCells > maxCellsToRender;
 
   return (
     <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', userSelect: 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
         <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '1.1rem', fontWeight: 600 }}>
-          Grid Painter
+          City Grid Painter
         </h3>
         <Button variant="secondary" onClick={clearGrid} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>
           Clear All
         </Button>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
         <button
           type="button"
-          onClick={() => setPaintMode('restricted')}
+          onClick={() => setPaintMode('building')}
           style={{
-            flex: 1,
-            padding: '6px 12px',
-            fontSize: '0.8rem',
+            padding: '6px 10px',
+            fontSize: '0.75rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
             cursor: 'pointer',
-            background: paintMode === 'restricted' ? 'var(--color-danger)' : 'rgba(244, 63, 94, 0.15)',
+            background: (paintMode === 'building' || paintMode === 'restricted') ? '#1e293b' : 'rgba(30, 41, 59, 0.4)',
             color: '#fff',
             fontWeight: 600,
-            transition: 'all var(--transition-fast)'
+            transition: 'all var(--transition-fast)',
+            boxShadow: (paintMode === 'building' || paintMode === 'restricted') ? '0 0 0 1px #64748b' : 'none'
           }}
         >
-          Restricted Area (RA)
+          Building (Dark)
         </button>
         <button
           type="button"
-          onClick={() => setPaintMode('non_critical')}
+          onClick={() => setPaintMode('low_priority')}
           style={{
-            flex: 1,
-            padding: '6px 12px',
-            fontSize: '0.8rem',
+            padding: '6px 10px',
+            fontSize: '0.75rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
             cursor: 'pointer',
-            background: paintMode === 'non_critical' ? 'var(--color-info)' : 'rgba(14, 165, 233, 0.15)',
+            background: (paintMode === 'low_priority' || paintMode === 'non_critical') ? '#15803d' : 'rgba(34, 197, 94, 0.2)',
             color: '#fff',
             fontWeight: 600,
-            transition: 'all var(--transition-fast)'
+            transition: 'all var(--transition-fast)',
+            boxShadow: (paintMode === 'low_priority' || paintMode === 'non_critical') ? '0 0 0 1px #22c55e' : 'none'
           }}
         >
-          Non-Critical (NCA)
+          Low-Priority (Green)
         </button>
         <button
           type="button"
-          onClick={() => setPaintMode('clear')}
+          onClick={() => setPaintMode('intersection')}
           style={{
-            flex: 1,
-            padding: '6px 12px',
-            fontSize: '0.8rem',
+            padding: '6px 10px',
+            fontSize: '0.75rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
             cursor: 'pointer',
-            background: paintMode === 'clear' ? 'var(--text-muted)' : 'rgba(100, 116, 139, 0.15)',
+            background: paintMode === 'intersection' ? '#b45309' : 'rgba(245, 158, 11, 0.2)',
             color: '#fff',
             fontWeight: 600,
-            transition: 'all var(--transition-fast)'
+            transition: 'all var(--transition-fast)',
+            boxShadow: paintMode === 'intersection' ? '0 0 0 1px #f59e0b' : 'none'
           }}
         >
-          Eraser
+          Intersection (Amber)
+        </button>
+        <button
+          type="button"
+          onClick={() => setPaintMode('road')}
+          style={{
+            padding: '6px 10px',
+            fontSize: '0.75rem',
+            borderRadius: 'var(--radius-sm)',
+            border: 'none',
+            cursor: 'pointer',
+            background: paintMode === 'road' ? '#475569' : 'rgba(100, 116, 139, 0.2)',
+            color: '#fff',
+            fontWeight: 600,
+            transition: 'all var(--transition-fast)',
+            boxShadow: paintMode === 'road' ? '0 0 0 1px #94a3b8' : 'none'
+          }}
+        >
+          Road Cell (Eraser)
         </button>
       </div>
 
@@ -153,11 +171,13 @@ export default function GridPainter() {
                 const key = `${colIdx},${rowIdx}`;
                 const cellType = paintedCells[key];
 
-                let bg = 'rgba(255,255,255,0.02)';
-                if (cellType === 'restricted') {
-                  bg = 'var(--color-danger)';
-                } else if (cellType === 'non_critical') {
-                  bg = 'var(--color-info)';
+                let bg = 'rgba(255,255,255,0.04)'; // Default Road cell (gray)
+                if (cellType === 'building' || cellType === 'restricted') {
+                  bg = '#1e293b'; // Building (dark)
+                } else if (cellType === 'low_priority' || cellType === 'non_critical') {
+                  bg = 'rgba(34, 197, 94, 0.45)'; // Low-priority (light green)
+                } else if (cellType === 'intersection') {
+                  bg = 'rgba(245, 158, 11, 0.65)'; // Intersection (amber/gold)
                 }
 
                 return (
@@ -178,7 +198,7 @@ export default function GridPainter() {
             })}
           </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Drag mouse over cells to paint zones.
+            Drag mouse over grid cells to set city cell types.
           </span>
         </div>
       )}

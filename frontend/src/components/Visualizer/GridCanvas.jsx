@@ -160,8 +160,10 @@ export default function GridCanvas({
       ctx.stroke();
     });
 
-    // ── Layer 4: Sensor nodes ───────────────────────────────────────────────
+    // ── Layer 4: Camera / Sensor nodes ───────────────────────────────────────
+    const isRL = result?.strategy === 'rl';
     const nodeRadius = Math.max(4, Math.min(8, W / 80));
+
     positions.forEach(([wx, wy], idx) => {
       const { px, py } = worldToCanvas(wx, wy, areaWidth, areaHeight, W, H, PADDING);
 
@@ -181,6 +183,32 @@ export default function GridCanvas({
         ctx.lineTo(px + size, py + size);
         ctx.moveTo(px - size, py + size);
         ctx.lineTo(px + size, py - size);
+        ctx.stroke();
+      } else if (isRL) {
+        // 📷 Traffic Camera Icon rendering for RL placement
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, nodeRadius * 2.8);
+        glow.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+        glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.beginPath();
+        ctx.arc(px, py, nodeRadius * 2.8, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Camera body rectangle
+        const cw = nodeRadius * 1.8;
+        const ch = nodeRadius * 1.2;
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(px - cw / 2, py - ch / 2, cw, ch);
+        ctx.strokeStyle = '#e0f2fe';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px - cw / 2, py - ch / 2, cw, ch);
+
+        // Lens circle
+        ctx.beginPath();
+        ctx.arc(px, py, nodeRadius * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
         ctx.stroke();
       } else {
         // Glow halo
@@ -208,7 +236,7 @@ export default function GridCanvas({
         ctx.fill();
       }
     });
-  }, [positions, coverageMap, commLinks, areaWidth, areaHeight, sensingRadius, failedIndices]);
+  }, [positions, coverageMap, commLinks, areaWidth, areaHeight, sensingRadius, failedIndices, result?.strategy]);
 
   // ─── Resize observer ───────────────────────────────────────────────────────
   useEffect(() => {

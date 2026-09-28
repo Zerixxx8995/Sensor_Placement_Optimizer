@@ -94,7 +94,7 @@ export default function WeightSliders() {
       </div>
 
       <Slider
-        label="Coverage Weight (w1)"
+        label="Road Coverage Weight (w1)"
         min={0}
         max={1}
         step={0.01}
@@ -103,7 +103,7 @@ export default function WeightSliders() {
       />
 
       <Slider
-        label="Energy Weight (w2)"
+        label="Deployment Cost Weight (w2)"
         min={0}
         max={1}
         step={0.01}
@@ -112,7 +112,7 @@ export default function WeightSliders() {
       />
 
       <Slider
-        label="Connectivity Weight (w3)"
+        label="Network Connectivity Weight (w3)"
         min={0}
         max={1}
         step={0.01}

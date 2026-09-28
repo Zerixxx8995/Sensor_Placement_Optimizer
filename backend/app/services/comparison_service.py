@@ -72,11 +72,16 @@ def run_comparison(config: OptimizationConfig) -> dict:
         chaos_iterations=chaos_iterations,
     )
 
+    # --- RL (PPO placement) ---
+    from app.services.ppo_placement_service import run_ppo_placement
+    rl_result = run_ppo_placement(config, job_id="compare-rl")
+
     results = [
         _extract_metrics("random",    random_result),
         _extract_metrics("grid",      grid_result),
         _extract_metrics("pso",       pso_result),
         _extract_metrics("pso_vdcoa", vdcoa_result),
+        _extract_metrics("rl",        rl_result),
     ]
 
     return {
