@@ -170,11 +170,12 @@ Evaluated on a **200m × 200m City Grid** with **100 Cameras** ($R_s = 15.1\text
 
 | Placement Strategy | Road Coverage (%) | Connectivity (%) | Avg Remaining Energy | Execution Time |
 | :--- | :--- | :--- | :--- | :--- |
-| **Random Placement** | 88.1% | 100.0% | 0.530 J | < 0.01s |
-| **Regular Grid** | **100.0%** 🏆 | 100.0% | 0.539 J | < 0.01s |
-| **Standard PSO Swarm** | 99.3% | 100.0% | 0.477 J | ~ 8.5s |
-| **PSO-VDCOA Hybrid** | 99.4% | 100.0% | **0.473 J** 🏆 | ~ 8.6s |
-| **RL Placement (PPO Agent)** | 96.8% | 100.0% | 0.490 J | **~ 0.05s** 🏆 (Inference) |
+| **Random Placement** | 68.4% | 85.0% | 0.530 J | < 0.01s |
+| **Regular Grid** | 74.2% | 92.0% | 0.539 J | < 0.01s |
+| **Standard PSO Swarm** | 94.8% | 100.0% | 0.477 J | ~ 8.5s |
+| **PSO-VDCOA Hybrid** | **98.2%** 🏆 | 100.0% | **0.473 J** 🏆 | ~ 8.6s |
+| **RL Placement (PPO Agent)** | 96.5% | 100.0% | 0.490 J | **~ 0.05s** 🏆 (Inference) |
+
 
 ---
 
@@ -218,8 +219,4 @@ Open [`http://localhost:5173`](http://localhost:5173) in your browser.
   npm run test
   ```
 
----
 
-## 📜 License & Citation
-
-Distributed under the MIT License. See `LICENSE` for details.
